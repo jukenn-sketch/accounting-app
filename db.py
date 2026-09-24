@@ -1,32 +1,37 @@
 import streamlit as st
 from supabase import create_client, Client
 
-# 從 st.secrets 取得連線資訊
-URL = st.secrets["SUPABASE_URL"]
-KEY = st.secrets["SUPABASE_KEY"]
+# 從 Secrets 讀取並清除前後空白/換行
+url = str(st.secrets.get("SUPABASE_URL", "")).strip()
+key = str(st.secrets.get("SUPABASE_KEY", "")).strip()
 
-supabase: Client = create_client(URL, KEY)
+# 顯示除錯資訊（確認 secrets 讀取到的內容長度與格式）
+st.write(f"🔍 URL: `{url}`")
+st.write(f"🔍 Key 長度: {len(key)}")
+if len(key) > 10:
+    st.write(f"🔍 Key 開頭與結尾: `{key[:10]}...{key[-10:]}`")
 
-def init_db():
-    pass # Supabase 免建檔，表格已在線上建立
+# 初始化 Supabase
+supabase: Client = create_client(url, key)
 
-def add_expense(date, category, amount, description):
-    data = {
-        "date": str(date),
-        "category": str(category),
-        "amount": float(amount),
-        "description": str(description)
-    }
-    supabase.table("expenses").insert(data).execute()
-
-def get_expenses():
+def fetch_data():
     try:
-        # 改用 "*" 撈取所有欄位，安全且不會遭遇 APIError
         response = supabase.table("expenses").select("*").execute()
         return response.data
     except Exception as e:
         st.error(f"讀取資料庫失敗：{e}")
         return []
 
-def delete_expense(expense_id):
-    supabase.table("expenses").delete().eq("id", expense_id).execute()
+def add_data(date, category, amount, description):
+    try:
+        data = {
+            "date": str(date),
+            "category": category,
+            "amount": amount,
+            "description": description
+        }
+        response = supabase.table("expenses").insert(data).execute()
+        return response
+    except Exception as e:
+        st.error(f"新增資料失敗：{e}")
+        return None
