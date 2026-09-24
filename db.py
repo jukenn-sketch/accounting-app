@@ -1,48 +1,31 @@
+import streamlit as st
+from supabase import create_client, Client
 
-import sqlite3 
+# 從 Streamlit secrets 取得連線金鑰
+URL = st.secrets["SUPABASE_URL"]
+KEY = st.secrets["SUPABASE_KEY"]
+#SUPABASE_URL = "https://cwpdrfbwaolcfqtraatm.supabase.co"
+#SUPABASE_KEY = "https://cwpdrfbwaolcfqtraatm.supabase.co/rest/v1/"
+supabase: Client = create_client(URL, KEY)
 
 def init_db():
-    # 連線至本地資料庫（若無檔案會自動建立）
-    conn = sqlite3.connect('accounting.db')
-    cursor = conn.cursor()
-    # 建立記帳資料表
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS expenses (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            date TEXT NOT NULL,
-            category TEXT NOT NULL,
-            amount INTEGER NOT NULL,
-            description TEXT
-        )
-    ''')
-    conn.commit()
-    conn.close()
+    # Supabase 已在線上建表，此處保留介面即可
+    pass
 
-    # 新增這段：將記帳資料寫入 SQLite 的函式
 def add_expense(date, category, amount, description):
-    conn = sqlite3.connect('accounting.db')
-    cursor = conn.cursor()
-    cursor.execute('''
-        INSERT INTO expenses (date, category, amount, description)
-        VALUES (?, ?, ?, ?)
-    ''', (str(date), category, amount, description))
-    conn.commit()
-    conn.close()
+    data = {
+        "date": str(date),
+        "category": category,
+        "amount": int(amount),
+        "description": description
+    }
+    supabase.table("expenses").insert(data).execute()
 
- # 取得所有帳務資料（按日期倒序排列，最新的在最上面）   
 def get_expenses():
-    conn = sqlite3.connect('accounting.db')
-    cursor = conn.cursor()
-    cursor.execute('SELECT id, date, category, amount, description FROM expenses ORDER BY date DESC, id DESC')
-    rows = cursor.fetchall()
-    conn.close()
+    response = supabase.table("expenses").select("id, date, category, amount, description").order("date", desc=True).order("id", desc=True).execute()
+    # 轉成與之前 SQLite fetchall() 相同的 tuple 格式
+    rows = [(item['id'], item['date'], item['category'], item['amount'], item['description']) for item in response.data]
     return rows
 
-# 根據 ID 刪除特定一筆帳務
 def delete_expense(expense_id):
-    conn = sqlite3.connect('accounting.db')
-    cursor = conn.cursor()
-    cursor.execute('DELETE FROM expenses WHERE id = ?', (expense_id,))
-    conn.commit()
-    conn.close()
-
+    supabase.table("expenses").delete().eq("id", expense_id).execute()
