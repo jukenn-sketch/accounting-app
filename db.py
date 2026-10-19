@@ -1,14 +1,14 @@
 import streamlit as st
 from supabase import create_client, Client
 
-url = st.secrets.get("SUPABASE_URL", "NOT_FOUND")
-key = st.secrets.get("SUPABASE_KEY", "NOT_FOUND")
+url = str(st.secrets.get("SUPABASE_URL", "")).strip()
+key = str(st.secrets.get("SUPABASE_KEY", "")).strip()
 
-# 直接在畫面上印出讀到的變數，看看是不是空字串
-st.write(f"【除錯】讀到的 URL: `{url}`")
-st.write(f"【除錯】讀到的 KEY 長度: `{len(key) if key != 'NOT_FOUND' else 0}`")
-
-supabase: Client = create_client(url, key)
+# 初始化 Supabase 客戶端
+try:
+    supabase: Client = create_client(url, key)
+except Exception as e:
+    st.error(f"初始化 Supabase 失敗：{e}")
 
 def init_db():
     pass
@@ -16,9 +16,9 @@ def init_db():
 def get_expenses():
     try:
         response = supabase.table("expenses").select("*").execute()
-        return response.data
+        return response.data if response.data else []
     except Exception as e:
-        st.error(f"讀取資料庫失敗：{e}")
+        st.warning("目前無法連線至雲端資料庫（可能是網路 DNS 正在解析，請重新整理頁面）")
         return []
 
 def add_expense(date, category, amount, description):
