@@ -13,13 +13,17 @@ except Exception as e:
 def init_db():
     pass
 
+
 def get_expenses():
     try:
         response = supabase.table("expenses").select("*").execute()
         return response.data if response.data else []
     except Exception as e:
-        st.warning("目前無法連線至雲端資料庫（可能是網路 DNS 正在解析，請重新整理頁面）")
+        # 把真實的錯誤原因印出來，方便我們看出問題點
+        st.warning(f"無法連線至雲端資料庫，詳細原因：{e}")
         return []
+    
+
 
 def add_expense(date, category, amount, description):
     try:
